@@ -1,0 +1,57 @@
+#! /bin/bash
+
+read -p "Enter Incident Number: " incident
+
+# Check ticket_status
+ticket_state=""
+
+while read inc status
+do
+    if [ "$inc" = "$incident" ]; then
+        ticket_state="$status"
+        break
+    fi
+done < <(awk '{print $1, $2}' ticket_status)
+
+# if Incident not found
+if [ -z "$ticket_state" ]; then
+    echo "Incident not found"
+    exit 1
+fi
+
+# if tecket_status is opened
+if [ "$ticket_state" = "opened" ]; then
+    echo "Still opened - Not solved"
+    exit 0
+fi
+
+# extract event_id
+event_id=""
+
+while read inc ev
+do
+    if [ "$inc" = "$incident" ]; then
+        event_id="$ev"
+        break
+    fi
+done < <(awk '{print $1, $2}' events_tickets.txt)
+# extract event state
+event_state=""
+
+while read ev state
+do
+    if [ "$ev" = "$event_id" ]; then
+        event_state="$state"
+        full_line="$ev $state"
+        break
+    fi
+done < <(awk '{print $1, $2}' Events_status.txt)
+
+# event state redirect or not
+if [[ "$event_state" == "closed" ]]; then
+    echo "Event already closed"
+else
+    echo "$full_line" >> new_closed_events.txt
+    echo "Event moved to new_closed_events.txt"
+fi
+
